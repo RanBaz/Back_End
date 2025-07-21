@@ -1,72 +1,89 @@
-# Import required libraries
-from flask import Flask, request, jsonify  # Flask for API creation
-import os  # For file/directory operations
-import requests  # For downloading files via HTTP
-from concurrent.futures import ThreadPoolExecutor  # For concurrent/multithreaded downloads
-from urllib.parse import urlparse  # To parse URLs and extract filenames
-import uuid  # To generate unique filenames when necessary
-import mimetypes  # To guess file extensions from content types
+import logging
+from flask import Flask, request, jsonify
+import os
+import requests
+from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urlparse
+import uuid
+import mimetypes
 
-# Initialize Flask app
+# ------------------- Setup Logging -------------------
+LOG_FILE = 'app.log'
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,  # Can be changed to DEBUG for more verbose logs
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# Also show logs in the console
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+console.setFormatter(formatter)
+logging.getLogger('').addHandler(console)
+
+# ------------------- Initialize Flask -------------------
 app = Flask(__name__)
 
-# Define folder where files will be downloaded
+# Create downloads folder if not exists
 DOWNLOAD_FOLDER = 'downloads'
-os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)  # Create folder if it doesn't exist
+os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-# Function to download a single file
+# ------------------- File Download Function -------------------
 def download_file(url):
     try:
-        # Make a GET request to the URL
+        logging.info(f"Starting download for: {url}")
         response = requests.get(url, timeout=10)
-        response.raise_for_status()  # Raise an exception if the status code is not 200
+        response.raise_for_status()
 
-        # Parse the URL to extract the filename
         parsed = urlparse(url)
         filename = os.path.basename(parsed.path)
 
-        # If filename is missing or has no extension
+        # If no filename or extension, use content-type to guess
         if not filename or '.' not in filename:
             content_type = response.headers.get('Content-Type', '').split(';')[0]
-            ext = mimetypes.guess_extension(content_type) or '.bin'  # Guess extension or use .bin
-            filename = f"{uuid.uuid4()}{ext}"  # Use UUID to create unique filename
+            ext = mimetypes.guess_extension(content_type) or '.bin'
+            filename = f"{uuid.uuid4()}{ext}"
 
-        # Create the full path to save the file
         filepath = os.path.join(DOWNLOAD_FOLDER, filename)
 
-        # Write file content to disk
         with open(filepath, 'wb') as f:
             f.write(response.content)
 
-        # Return success info
+        logging.info(f"Downloaded and saved to: {filepath}")
+
         return {
             'url': url,
             'status': 'success',
             'filename': filename,
             'saved_path': os.path.abspath(filepath)
         }
-    except Exception as e:
-        # If any error occurs, return the error message
-        return {'url': url, 'status': 'error', 'error': str(e)}
 
-# Define the API route for downloading multiple files
+    except Exception as e:
+        logging.error(f"Error downloading {url}: {e}")
+        return {
+            'url': url,
+            'status': 'error',
+            'error': str(e)
+        }
+
+# ------------------- API Route -------------------
 @app.route('/download', methods=['POST'])
 def download_files():
-    # Parse JSON from request body
     data = request.get_json()
-    urls = data.get('urls', [])  # Extract list of URLs
+    urls = data.get('urls', [])
 
-    # Validate input
     if not urls or not isinstance(urls, list):
+        logging.warning("Invalid input: missing or incorrect 'urls' format")
         return jsonify({'error': 'Please provide a list of URLs under "urls"'}), 400
 
-    # Use ThreadPoolExecutor to download files concurrently
+    logging.info(f"Received {len(urls)} URLs for download")
     with ThreadPoolExecutor() as executor:
         results = list(executor.map(download_file, urls))
 
-    # Return the results
     return jsonify({'results': results})
 
-# Run the app
+# ------------------- Run App -------------------
 if __name__ == '__main__':
+    logging.info("Starting Flask app on http://127.0.0.1:5000")
     app.run(debug=True)

@@ -1,0 +1,9 @@
+2025-07-21 14:37:25,835 - INFO - Starting Flask app on http://127.0.0.1:5000
+2025-07-21 14:37:25,853 - WARNING -  * Debugger is active!
+2025-07-21 14:37:25,872 - INFO -  * Debugger PIN: 442-389-595
+2025-07-21 14:37:35,491 - INFO - Received 2 URLs for download
+2025-07-21 14:37:35,492 - INFO - Starting download for: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRduXFjNZQlYDT_bBSJiIS_EScBlqy6EtJgig&s
+2025-07-21 14:37:35,492 - INFO - Starting download for: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ2YHsdZvuseaOKn4vL_r9VnDQJw4nWtGAE4A&s
+2025-07-21 14:37:35,662 - INFO - Downloaded and saved to: downloads\4a03f332-7dad-48e4-8d26-9af12f85a2f5.jpg
+2025-07-21 14:37:35,666 - INFO - Downloaded and saved to: downloads\c7172f61-0aca-443f-8f83-4c99723a0b56.jpg
+2025-07-21 14:37:35,669 - INFO - 127.0.0.1 - - [21/Jul/2025 14:37:35] "POST /download HTTP/1.1" 200 -
